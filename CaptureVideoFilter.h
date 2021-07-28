@@ -10,34 +10,34 @@ class CaptureVideoFilter : public QAbstractVideoFilter
 {
     Q_OBJECT
 
-    Q_PROPERTY( int interval READ interval WRITE setInterval NOTIFY intervalChanged )
-    Q_PROPERTY( QString image READ image NOTIFY imageChanged )
+    Q_PROPERTY(qint64 interval MEMBER m_Interval NOTIFY intervalChanged)
+    Q_PROPERTY(QString image MEMBER m_Image NOTIFY imageChanged)
 
 signals:
     void intervalChanged();
     void imageChanged();
 
 public:
-    CaptureVideoFilter( QObject* parent = nullptr );
+    CaptureVideoFilter(QObject* parent = nullptr);
     QVideoFilterRunnable* createFilterRunnable() Q_DECL_OVERRIDE;
 
-public:
-    int interval() const { return m_Interval; }
-    void setInterval(int interval);
+protected:
+    qint64 interval() const { return m_Interval; }
+    void setInterval(qint64 interval);
 
     QString image() const { return m_Image; }
     void setImage(const QString& image);
 
 protected:
-    int m_Interval;
+    qint64 m_Interval;
     QString m_Image;
 };
 
 class CaptureVideoFilterRunnable : public QVideoFilterRunnable
 {
 public:
-    CaptureVideoFilterRunnable( CaptureVideoFilter* filter );
-    QVideoFrame run( QVideoFrame *input, const QVideoSurfaceFormat &surfaceFormat, RunFlags flags ) Q_DECL_OVERRIDE;
+    CaptureVideoFilterRunnable(CaptureVideoFilter* filter);
+    QVideoFrame run(QVideoFrame *input, const QVideoSurfaceFormat &surfaceFormat, RunFlags flags) Q_DECL_OVERRIDE;
 
 protected:
     CaptureVideoFilter* m_Filter;
@@ -58,7 +58,6 @@ protected:
     static CaptureVideoImageProvider* g_this;
     QVector<QImage> m_Images;
     int m_Id;
-
 };
 
 #endif

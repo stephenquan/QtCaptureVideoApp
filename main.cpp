@@ -8,8 +8,7 @@ int main(int argc, char *argv[])
 
     QGuiApplication app(argc, argv);
 
-    qmlRegisterType<CaptureVideoFilter>("VideoCaptureApp", 1, 0, "CaptureVideoFilter");
-
+    qmlRegisterType<CaptureVideoFilter>("QtCaptureVideoApp", 1, 0, "CaptureVideoFilter");
 
     QQmlApplicationEngine engine;
     CaptureVideoImageProvider* imageProvider = new CaptureVideoImageProvider;
@@ -22,7 +21,6 @@ int main(int argc, char *argv[])
             QCoreApplication::exit(-1);
     }, Qt::QueuedConnection);
     engine.load(url);
-
 
     return app.exec();
 }

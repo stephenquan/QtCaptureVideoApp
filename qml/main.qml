@@ -1,8 +1,9 @@
 import QtQuick 2.12
 import QtQuick.Window 2.12
 import QtQuick.Controls 2.12
+import QtQuick.Layouts 1.12
 import QtMultimedia 5.12
-import VideoCaptureApp 1.0
+import QtCaptureVideoApp 1.0
 
 Window {
     width: 640
@@ -11,58 +12,95 @@ Window {
     title: qsTr("Android Camera App")
 
     property bool landscape: width >= height
-
-    Rectangle {
-        anchors.fill: parent
-        color: "black"
+    property var intervals: {
+        "Slow": 10000,
+        "Medium": 1000,
+        "Fast" : 100
     }
 
-    VideoOutput {
-        width: landscape ? parent.width / 2 : parent.width
-        height: landscape ? parent.height : parent.height / 2
+    Page {
+        anchors.fill: parent
 
-        source: camera
-        filters: [ captureVideoFilter ]
-        autoOrientation: true
+        background: Rectangle {
+            color: "black"
+        }
 
-        Frame {
-            width: parent.width
+        VideoOutput {
+            width: landscape ? parent.width / 2 : parent.width
+            height: landscape ? parent.height : parent.height / 2
 
-            background: Rectangle {
-                color: "#808080"
-                opacity: 0.5
-            }
+            source: camera
+            filters: [ captureVideoFilter ]
+            autoOrientation: true
 
-            Text {
+            Frame {
                 width: parent.width
-                text: qsTr("Camera")
-                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                color: "yellow"
+
+                background: Rectangle {
+                    color: "#808080"
+                    opacity: 0.5
+                }
+
+                Text {
+                    width: parent.width
+                    text: qsTr("Camera")
+                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                    color: "yellow"
+                }
             }
         }
-    }
 
-    Image {
-        anchors.bottom: parent.bottom
-        anchors.right: parent.right
-        width: landscape ? parent.width / 2 : parent.width
-        height: landscape ? parent.height : parent.height / 2
-        source: captureVideoFilter.image
-        fillMode: Image.PreserveAspectFit
+        Image {
+            anchors.bottom: parent.bottom
+            anchors.right: parent.right
+            width: landscape ? parent.width / 2 : parent.width
+            height: landscape ? parent.height : parent.height / 2
+            source: captureVideoFilter.image
+            fillMode: Image.PreserveAspectFit
 
-        Frame {
-            width: parent.width
+            Frame {
+                width: parent.width
 
+                background: Rectangle {
+                    color: "#808080"
+                    opacity: 0.5
+                }
+
+                Text {
+                    width: parent.width
+                    text: captureVideoFilter.image
+                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                    color: "yellow"
+                }
+            }
+        }
+
+        footer: Frame {
             background: Rectangle {
                 color: "#808080"
-                opacity: 0.5
             }
 
-            Text {
+            RowLayout {
                 width: parent.width
-                text: captureVideoFilter.image
-                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                color: "yellow"
+
+                Button {
+                    text: qsTr("Slow")
+                    checked:  captureVideoFilter.interval === intervals.Slow
+                    onClicked: captureVideoFilter.interval = intervals.Slow;
+                }
+
+                Button {
+                    text: qsTr("Medium")
+                    checked:  captureVideoFilter.interval === intervals.Medium
+                    onClicked: captureVideoFilter.interval = intervals.Medium;
+                }
+
+                Button {
+                    text: qsTr("Fast")
+                    checked:  captureVideoFilter.interval === intervals.Fast
+                    onClicked: captureVideoFilter.interval = intervals.Fast;
+                }
+
             }
         }
     }
@@ -73,6 +111,6 @@ Window {
 
     CaptureVideoFilter {
         id: captureVideoFilter
-        interval: 50
+        interval: intervals.Medium
     }
 }

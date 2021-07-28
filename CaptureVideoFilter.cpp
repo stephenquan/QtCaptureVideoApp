@@ -3,64 +3,40 @@
 #include <QByteArray>
 #include <QDateTime>
 
-CaptureVideoFilter::CaptureVideoFilter( QObject* parent )
-    : QAbstractVideoFilter( parent ),
-      m_Interval( 1000 )
+CaptureVideoFilter::CaptureVideoFilter(QObject* parent)
+    : QAbstractVideoFilter(parent),
+      m_Interval(1000)
 {
-}
-
-void CaptureVideoFilter::setInterval(const int interval)
-{
-    if (m_Interval == interval)
-    {
-        return;
-    }
-
-    m_Interval = interval;
-
-    emit intervalChanged();
-}
-
-void CaptureVideoFilter::setImage(const QString& image)
-{
-    if (m_Image == image)
-    {
-        return;
-    }
-
-    m_Image = image;
-
-    emit imageChanged();
 }
 
 QVideoFilterRunnable* CaptureVideoFilter::createFilterRunnable()
 {
-    return new CaptureVideoFilterRunnable( this );
+    return new CaptureVideoFilterRunnable(this);
 }
 
-CaptureVideoFilterRunnable::CaptureVideoFilterRunnable( CaptureVideoFilter* filter ) :
+CaptureVideoFilterRunnable::CaptureVideoFilterRunnable(CaptureVideoFilter* filter) :
     QVideoFilterRunnable(),
-    m_Filter( filter ),
-    m_LastCapture( 0 )
+    m_Filter(filter),
+    m_LastCapture(0)
 {
 }
 
-QVideoFrame CaptureVideoFilterRunnable::run( QVideoFrame *input, const QVideoSurfaceFormat &surfaceFormat, RunFlags flags )
+QVideoFrame CaptureVideoFilterRunnable::run(QVideoFrame *input, const QVideoSurfaceFormat &surfaceFormat, RunFlags flags)
 {
-    Q_UNUSED( surfaceFormat )
-    Q_UNUSED( flags )
+    Q_UNUSED(surfaceFormat)
+    Q_UNUSED(flags)
 
-    if ( !input )
+    if (!input)
     {
         return QVideoFrame();
     }
 
-    if ( !m_Filter )
+    if (!m_Filter)
     {
         return *input;
     }
 
-    int interval = m_Filter->interval();
+    qint64 interval = m_Filter->property("interval").toLongLong();
 
     qint64 now = QDateTime::currentMSecsSinceEpoch();
     if (now < m_LastCapture + interval)
@@ -71,7 +47,7 @@ QVideoFrame CaptureVideoFilterRunnable::run( QVideoFrame *input, const QVideoSur
     QImage image = input->image();
     QString id = CaptureVideoImageProvider::instance()->addImage(image);
 
-    m_Filter->setImage("image://captureVideo/" + id);
+    m_Filter->setProperty("image", "image://captureVideo/" + id);
     m_LastCapture = now;
 
     return *input;
