@@ -3,6 +3,11 @@
 #include <QByteArray>
 #include <QDateTime>
 
+QImage QVideoFrameToQImage(QVideoFrame* videoFrame)
+{
+    return videoFrame->image();
+}
+
 CaptureVideoFilter::CaptureVideoFilter(QObject* parent)
     : QAbstractVideoFilter(parent),
       m_Interval(1000)
@@ -45,18 +50,22 @@ QVideoFrame CaptureVideoFilterRunnable::run(QVideoFrame *input, const QVideoSurf
     }
 
     QImage image = input->image();
+    if (surfaceFormat.scanLineDirection() == QVideoSurfaceFormat::BottomToTop)
+    {
+        image = image.mirrored(false, true);
+    }
     QString id = CaptureVideoImageProvider::instance()->addImage(image);
     QMetaEnum formatEnum = QMetaEnum::fromType<QImage::Format>();
     QMetaEnum pixelFormatEnum = QMetaEnum::fromType<CaptureVideoFilter::PixelFormat>();
     QString imageInfo =
-            QString("input:")
+            QString("QVideoFrame:")
             + pixelFormatEnum.valueToKey(static_cast<CaptureVideoFilter::PixelFormat>(input->pixelFormat()))
             + ":"
             + QString::number(input->width())
             + "x"
             + QString::number(input->height())
             + " "
-            + QString("image:")
+            + QString("QImage:")
             + formatEnum.valueToKey(image.format())
             + ":"
             + QString::number(image.width())

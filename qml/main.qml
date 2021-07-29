@@ -13,9 +13,9 @@ Window {
 
     property bool landscape: width >= height
     property var intervals: {
-        "Slow": 10000,
+        "Slow": 2000,
         "Medium": 1000,
-        "Fast" : 100
+        "Fast" : 50
     }
 
     Page {
@@ -68,7 +68,9 @@ Window {
 
                 Text {
                     width: parent.width
-                    text: captureVideoFilter.image + " " + captureVideoFilter.imageInfo
+                    text: captureVideoFilter.image
+                          + "\n"
+                          + captureVideoFilter.imageInfo
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     color: "yellow"
                 }
