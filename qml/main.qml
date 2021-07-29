@@ -68,7 +68,7 @@ Window {
 
                 Text {
                     width: parent.width
-                    text: captureVideoFilter.image
+                    text: captureVideoFilter.image + " " + captureVideoFilter.imageInfo
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     color: "yellow"
                 }

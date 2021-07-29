@@ -46,8 +46,26 @@ QVideoFrame CaptureVideoFilterRunnable::run(QVideoFrame *input, const QVideoSurf
 
     QImage image = input->image();
     QString id = CaptureVideoImageProvider::instance()->addImage(image);
+    QMetaEnum formatEnum = QMetaEnum::fromType<QImage::Format>();
+    QMetaEnum pixelFormatEnum = QMetaEnum::fromType<CaptureVideoFilter::PixelFormat>();
+    QString imageInfo =
+            QString("input:")
+            + pixelFormatEnum.valueToKey(static_cast<CaptureVideoFilter::PixelFormat>(input->pixelFormat()))
+            + ":"
+            + QString::number(input->width())
+            + "x"
+            + QString::number(input->height())
+            + " "
+            + QString("image:")
+            + formatEnum.valueToKey(image.format())
+            + ":"
+            + QString::number(image.width())
+            + "x"
+            + QString::number(image.height())
+            ;
 
     m_Filter->setProperty("image", "image://captureVideo/" + id);
+    m_Filter->setProperty("imageInfo", imageInfo);
     m_LastCapture = now;
 
     return *input;
