@@ -8,7 +8,7 @@
 
 QString errorString;
 
-bool QVideoFrameToQImageUsingMap(QVideoFrame* input, QImage& image)
+bool QVideoFrameToQImageUsingMap(QVideoFrame* input, QImage& image, const QVideoSurfaceFormat &surfaceFormat)
 {
     errorString.clear();
     QImage::Format format = QVideoFrame::imageFormatFromPixelFormat(input->pixelFormat());
@@ -39,7 +39,9 @@ bool QVideoFrameToQImageUsingMap(QVideoFrame* input, QImage& image)
                     input->bytesPerLine(),
                     QImage::Format_ARGB32)
                        .rgbSwapped()
-                       .mirrored(false, true);
+                       .mirrored(false,
+                                 true
+                                 );
         input->unmap();
         return true;
     }
@@ -50,7 +52,17 @@ bool QVideoFrameToQImageUsingMap(QVideoFrame* input, QImage& image)
         return false;
     }
 
-    image = QImage(input->bits(), input->width(), input->height(), input->bytesPerLine(), format).copy();
+    image = QImage(
+                input->bits(),
+                input->width(),
+                input->height(),
+                input->bytesPerLine(),
+                format)
+                .copy()
+                .mirrored(
+                    false,
+                    surfaceFormat.scanLineDirection() == QVideoSurfaceFormat::BottomToTop)
+            ;
     input->unmap();
     return true;
 }
@@ -138,7 +150,7 @@ QVideoFrame CaptureVideoFilterRunnable::run(QVideoFrame *input, const QVideoSurf
     }
     if (method == CaptureVideoFilter::ConversionMethodMap)
     {
-        if (!QVideoFrameToQImageUsingMap(input, image))
+        if (!QVideoFrameToQImageUsingMap(input, image, surfaceFormat))
         {
             imageInfo["errorString"] = errorString;
             m_Filter->setProperty("imageInfo", imageInfo);
