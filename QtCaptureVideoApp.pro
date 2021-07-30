@@ -1,5 +1,6 @@
 QT += quick
 QT += multimedia
+QT += svg
 
 CONFIG += c++11
 

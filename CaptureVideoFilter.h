@@ -11,9 +11,19 @@ class CaptureVideoFilter : public QAbstractVideoFilter
 {
     Q_OBJECT
 
-    Q_PROPERTY(qint64 interval MEMBER m_Interval NOTIFY intervalChanged)
     Q_PROPERTY(QString image MEMBER m_Image NOTIFY imageChanged)
-    Q_PROPERTY(QString imageInfo MEMBER m_ImageInfo NOTIFY imageInfoChanged)
+    Q_PROPERTY(QVariantMap imageInfo MEMBER m_ImageInfo NOTIFY imageInfoChanged)
+    Q_PROPERTY(ConversionMethod conversionMethod MEMBER m_ConversionMethod NOTIFY conversionMethodChanged)
+
+public:
+    enum ConversionMethod
+    {
+        ConversionMethodQt,
+        ConversionMethodMap,
+        ConversionMethodOpenGL
+    };
+
+    Q_ENUM(ConversionMethod)
 
 public:
     enum PixelFormat
@@ -69,14 +79,14 @@ public:
     QVideoFilterRunnable* createFilterRunnable() Q_DECL_OVERRIDE;
 
 signals:
-    void intervalChanged();
     void imageChanged();
     void imageInfoChanged();
+    void conversionMethodChanged();
 
 protected:
-    qint64 m_Interval;
     QString m_Image;
-    QString m_ImageInfo;
+    QVariantMap m_ImageInfo;
+    ConversionMethod m_ConversionMethod;
 };
 
 class CaptureVideoFilterRunnable : public QVideoFilterRunnable
@@ -87,7 +97,6 @@ public:
 
 protected:
     CaptureVideoFilter* m_Filter;
-    qint64 m_LastCapture;
 };
 
 class CaptureVideoImageProvider : public QQuickImageProvider

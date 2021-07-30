@@ -11,12 +11,12 @@ Window {
     visible: true
     title: qsTr("Android Camera App")
 
+    property string cameraDisplayName: qsTr("Camera")
+    property int cameraIndex: 0
+    property var frameStart: Date.now()
+    property int frameCount: 0
+    property string fps: ""
     property bool landscape: width >= height
-    property var intervals: {
-        "Slow": 2000,
-        "Medium": 1000,
-        "Fast" : 50
-    }
 
     Page {
         anchors.fill: parent
@@ -43,9 +43,10 @@ Window {
 
                 Text {
                     width: parent.width
-                    text: qsTr("Camera")
+                    text: qsTr("%1 (%2)").arg(cameraDisplayName).arg(cameraIndex)
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     color: "yellow"
+                    font.pointSize: 10
                 }
             }
         }
@@ -68,10 +69,11 @@ Window {
 
                 Text {
                     width: parent.width
-                    text: captureVideoFilter.image
-                          + "\n"
-                          + captureVideoFilter.imageInfo
+                    text: captureVideoFilter.image + "\n"
+                          + prettify(captureVideoFilter.imageInfo) + "\n"
+                          + fps
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                    font.pointSize: 10
                     color: "yellow"
                 }
             }
@@ -85,24 +87,21 @@ Window {
             RowLayout {
                 width: parent.width
 
-                Button {
-                    text: qsTr("Slow")
-                    checked:  captureVideoFilter.interval === intervals.Slow
-                    onClicked: captureVideoFilter.interval = intervals.Slow;
-                }
+                Item { Layout.fillWidth: true }
 
                 Button {
-                    text: qsTr("Medium")
-                    checked:  captureVideoFilter.interval === intervals.Medium
-                    onClicked: captureVideoFilter.interval = intervals.Medium;
+                    icon.source: "images/camera-switch-front-back-32.svg"
+                    onClicked: changeCamera()
                 }
+
+                Item { Layout.fillWidth: true }
 
                 Button {
-                    text: qsTr("Fast")
-                    checked:  captureVideoFilter.interval === intervals.Fast
-                    onClicked: captureVideoFilter.interval = intervals.Fast;
+                    icon.source: "images/function-32.svg"
+                    onClicked: changeMethod()
                 }
 
+                Item { Layout.fillWidth: true }
             }
         }
     }
@@ -113,6 +112,58 @@ Window {
 
     CaptureVideoFilter {
         id: captureVideoFilter
-        interval: intervals.Medium
+
+        onImageChanged: {
+            frameCount++;
+            let elapsed = (Date.now() - frameStart) / 1000.0;
+            fps = (frameCount / elapsed).toFixed(0) + " FPS";
+        }
+    }
+
+    Component.onCompleted: Qt.callLater(selectCamera, 0)
+
+    function selectCamera(index) {
+        if (index > QtMultimedia.availableCameras.length) {
+            return;
+        }
+
+        cameraIndex = index;
+        camera.stop();
+        camera.deviceId = QtMultimedia.availableCameras[cameraIndex].deviceId;
+        camera.start();
+        cameraDisplayName = QtMultimedia.availableCameras[cameraIndex].displayName;
+        frameStart = Date.now();
+        frameCount = 0;
+        fps = "0 FPS";
+    }
+
+    function changeCamera() {
+        let nextCameraIndex = (cameraIndex + 1) % QtMultimedia.availableCameras.length;
+        selectCamera(nextCameraIndex);
+    }
+
+    function changeMethod() {
+        switch (captureVideoFilter.conversionMethod)
+        {
+        case CaptureVideoFilter.ConversionMethodQt:
+            captureVideoFilter.conversionMethod = CaptureVideoFilter.ConversionMethodMap;
+            break;
+        case CaptureVideoFilter.ConversionMethodMap:
+            captureVideoFilter.conversionMethod =
+                    Qt.platform.os === "android"
+            ? CaptureVideoFilter.ConversionMethodOpenGL
+            : CaptureVideoFilter.ConversionMethodQt
+            break;
+        default:
+            captureVideoFilter.conversionMethod = CaptureVideoFilter.ConversionMethodQt;
+            break;
+        }
+        frameStart = Date.now();
+        frameCount = 0;
+        fps = "0 FPS";
+    }
+
+    function prettify(obj) {
+        return Object.entries(obj).map( ([a,b]) => a + ": " + b).join("\n");
     }
 }

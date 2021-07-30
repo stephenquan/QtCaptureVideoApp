@@ -2,15 +2,81 @@
 #include <QBuffer>
 #include <QByteArray>
 #include <QDateTime>
+#include <QOpenGLContext>
+#include <QOpenGLFunctions>
+#include <QQmlContext>
 
-QImage QVideoFrameToQImage(QVideoFrame* videoFrame)
+QString errorString;
+
+bool QVideoFrameToQImageUsingMap(QVideoFrame* input, QImage& image)
 {
-    return videoFrame->image();
+    errorString.clear();
+    QImage::Format format = QVideoFrame::imageFormatFromPixelFormat(input->pixelFormat());
+    if (format == QImage::Format_Invalid)
+    {
+        if (input->pixelFormat() != QVideoFrame::Format_ABGR32)
+        {
+            QMetaEnum pixelFormatEnum = QMetaEnum::fromType<CaptureVideoFilter::PixelFormat>();
+            errorString = QStringLiteral("")
+                    + pixelFormatEnum.valueToKey(input->pixelFormat())
+                    + QStringLiteral(" ")
+                    + QStringLiteral("(")
+                    + QString::number(input->pixelFormat())
+                    + QStringLiteral(")")
+                    + QStringLiteral(" not supported")
+                    ;
+            return false;
+        }
+        if (!input->map(QAbstractVideoBuffer::ReadOnly))
+        {
+            errorString = QStringLiteral("QVideoFrame::map() not supported");
+            return false;
+        }
+        image = QImage(
+                    input->bits(),
+                    input->width(),
+                    input->height(),
+                    input->bytesPerLine(),
+                    QImage::Format_ARGB32)
+                       .rgbSwapped()
+                       .mirrored(false, true);
+        input->unmap();
+        return true;
+    }
+
+    if (!input->map(QAbstractVideoBuffer::ReadOnly))
+    {
+        errorString = QStringLiteral("QVideoFrame::map() not supported");
+        return false;
+    }
+
+    image = QImage(input->bits(), input->width(), input->height(), input->bytesPerLine(), format).copy();
+    input->unmap();
+    return true;
 }
+
+bool QVideoFrameToQImageUsingOpenGL(QVideoFrame* input, QImage& image)
+{
+    image = QImage(input->width(), input->height(), QImage::Format_ARGB32);
+    GLuint textureId = static_cast<GLuint>( input->handle().toInt() );
+    QOpenGLContext* ctx = QOpenGLContext::currentContext();
+    QOpenGLFunctions* f = ctx->functions();
+    GLuint fbo;
+    f->glGenFramebuffers( 1, &fbo );
+    GLint prevFbo;
+    f->glGetIntegerv( GL_FRAMEBUFFER_BINDING, &prevFbo );
+    f->glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+    f->glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0 );
+    f->glReadPixels( 0, 0,  input->width(),  input->height(), GL_RGBA, GL_UNSIGNED_BYTE, image.bits() );
+    f->glBindFramebuffer( GL_FRAMEBUFFER, static_cast<GLuint>( prevFbo ) );
+    image = image.rgbSwapped();
+    return true;
+}
+
 
 CaptureVideoFilter::CaptureVideoFilter(QObject* parent)
     : QAbstractVideoFilter(parent),
-      m_Interval(1000)
+      m_ConversionMethod(ConversionMethodQt)
 {
 }
 
@@ -21,8 +87,7 @@ QVideoFilterRunnable* CaptureVideoFilter::createFilterRunnable()
 
 CaptureVideoFilterRunnable::CaptureVideoFilterRunnable(CaptureVideoFilter* filter) :
     QVideoFilterRunnable(),
-    m_Filter(filter),
-    m_LastCapture(0)
+    m_Filter(filter)
 {
 }
 
@@ -41,41 +106,57 @@ QVideoFrame CaptureVideoFilterRunnable::run(QVideoFrame *input, const QVideoSurf
         return *input;
     }
 
-    qint64 interval = m_Filter->property("interval").toLongLong();
+    QVariantMap imageInfo;
 
-    qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (now < m_LastCapture + interval)
+    QMetaEnum pixelFormatEnum = QMetaEnum::fromType<CaptureVideoFilter::PixelFormat>();
+    imageInfo["qvideoFramePixelFormat"] = pixelFormatEnum.valueToKey(static_cast<CaptureVideoFilter::PixelFormat>(input->pixelFormat()));
+    imageInfo["qvideoFrameResolution"] = QString::number(input->width()) + "x" + QString::number(input->height());
+
+    CaptureVideoFilter::ConversionMethod method = static_cast<CaptureVideoFilter::ConversionMethod>(m_Filter->property("conversionMethod").toInt());
+    switch (method)
     {
-        return *input;
+    case CaptureVideoFilter::ConversionMethodQt:
+        imageInfo["method"] = "QVideoFrame::image()";
+        break;
+    case CaptureVideoFilter::ConversionMethodMap:
+        imageInfo["method"] = "QVideoFrame::map()";
+        break;
+    case CaptureVideoFilter::ConversionMethodOpenGL:
+        imageInfo["method"] = "GL_FRAMEBUFFER";
+        break;
     }
 
-    QImage image = input->image();
-    if (surfaceFormat.scanLineDirection() == QVideoSurfaceFormat::BottomToTop)
+    QImage image;
+
+    if (method == CaptureVideoFilter::ConversionMethodQt)
     {
-        image = image.mirrored(false, true);
+        image = input->image();
+        if (surfaceFormat.scanLineDirection() == QVideoSurfaceFormat::BottomToTop)
+        {
+            image = image.mirrored(false, true);
+        }
     }
+    if (method == CaptureVideoFilter::ConversionMethodMap)
+    {
+        if (!QVideoFrameToQImageUsingMap(input, image))
+        {
+            imageInfo["errorString"] = errorString;
+            m_Filter->setProperty("imageInfo", imageInfo);
+            return *input;
+        }
+    }
+    if (method == CaptureVideoFilter::ConversionMethodOpenGL)
+    {
+        QVideoFrameToQImageUsingOpenGL(input, image);
+    }
+
     QString id = CaptureVideoImageProvider::instance()->addImage(image);
     QMetaEnum formatEnum = QMetaEnum::fromType<QImage::Format>();
-    QMetaEnum pixelFormatEnum = QMetaEnum::fromType<CaptureVideoFilter::PixelFormat>();
-    QString imageInfo =
-            QString("QVideoFrame:")
-            + pixelFormatEnum.valueToKey(static_cast<CaptureVideoFilter::PixelFormat>(input->pixelFormat()))
-            + ":"
-            + QString::number(input->width())
-            + "x"
-            + QString::number(input->height())
-            + " "
-            + QString("QImage:")
-            + formatEnum.valueToKey(image.format())
-            + ":"
-            + QString::number(image.width())
-            + "x"
-            + QString::number(image.height())
-            ;
+    imageInfo["qimageFormat"] = formatEnum.valueToKey(image.format());
+    imageInfo["qimageResolution"] = QString::number(image.width()) + "x" + QString::number(image.height());
 
     m_Filter->setProperty("image", "image://captureVideo/" + id);
     m_Filter->setProperty("imageInfo", imageInfo);
-    m_LastCapture = now;
 
     return *input;
 }
