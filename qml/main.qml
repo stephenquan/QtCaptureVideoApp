@@ -26,9 +26,9 @@ Window {
         }
 
         VideoOutput {
+            id: videoOutput
             width: landscape ? parent.width / 2 : parent.width
             height: landscape ? parent.height : parent.height / 2
-
             source: camera
             filters: [ captureVideoFilter ]
             autoOrientation: true
@@ -43,7 +43,8 @@ Window {
 
                 Text {
                     width: parent.width
-                    text: qsTr("%1 (%2)").arg(cameraDisplayName).arg(cameraIndex)
+                    text: qsTr("%1 (%2)").arg(cameraDisplayName).arg(cameraIndex) + "\n"
+                    + qsTr("Orientation: %1").arg(videoOutput.orientation)
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     color: "yellow"
                     font.pointSize: 10

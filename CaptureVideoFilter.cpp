@@ -142,11 +142,10 @@ QVideoFrame CaptureVideoFilterRunnable::run(QVideoFrame *input, const QVideoSurf
 
     if (method == CaptureVideoFilter::ConversionMethodQt)
     {
-        image = input->image();
-        if (surfaceFormat.scanLineDirection() == QVideoSurfaceFormat::BottomToTop)
-        {
-            image = image.mirrored(false, true);
-        }
+        image = input->image()
+                .mirrored(
+                    false,
+                    surfaceFormat.scanLineDirection() == QVideoSurfaceFormat::BottomToTop);
     }
     if (method == CaptureVideoFilter::ConversionMethodMap)
     {
