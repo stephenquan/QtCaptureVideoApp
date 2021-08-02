@@ -13,6 +13,7 @@ class CaptureVideoFilter : public QAbstractVideoFilter
 
     Q_PROPERTY(QVariantMap imageInfo MEMBER m_ImageInfo NOTIFY imageInfoChanged)
     Q_PROPERTY(ConversionMethod conversionMethod MEMBER m_ConversionMethod NOTIFY conversionMethodChanged)
+    Q_PROPERTY(bool capturing MEMBER m_Capturing NOTIFY capturingChanged)
 
 public:
     enum ConversionMethod
@@ -78,7 +79,11 @@ public:
     CaptureVideoFilter(QObject* parent = nullptr);
     QVideoFilterRunnable* createFilterRunnable() Q_DECL_OVERRIDE;
 
+    Q_INVOKABLE void capture() { setProperty("capturing", true); }
+
 signals:
+    void captured(const QUrl& imageUrl);
+    void capturingChanged();
     void frame();
     void imageInfoChanged();
     void conversionMethodChanged();
@@ -86,6 +91,7 @@ signals:
 protected:
     QVariantMap m_ImageInfo;
     ConversionMethod m_ConversionMethod;
+    bool m_Capturing;
 };
 
 class CaptureVideoFilterRunnable : public QVideoFilterRunnable

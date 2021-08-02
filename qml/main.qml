@@ -45,16 +45,36 @@ Window {
                 Text {
                     width: parent.width
                     text: ""
-                    + qsTr("%1 (%2 of %3)")
+                    + qsTr("Camera: %1 (%2 of %3)")
                         .arg(cameraDisplayName)
                         .arg(cameraIndex + 1)
                         .arg(QtMultimedia.availableCameras.length) + "\n"
                     + qsTr("Orientation: %1").arg(videoOutput.orientation) + "\n"
                     + prettify(captureVideoFilter.imageInfo) + "\n"
-                    + fps
+                    + qsTr("FrameRate: %1").arg(fps)
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     color: "yellow"
                     font.pointSize: 10
+                }
+            }
+
+            Frame {
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: 10
+                width: parent.width / 4
+                height: parent.height / 4
+                padding: 0
+
+                background: Rectangle {
+                    color: "black"
+                    opacity: 0.5
+                }
+
+                Image {
+                    id: image
+                    anchors.fill: parent
+                    fillMode: Image.PreserveAspectFit
                 }
             }
         }
@@ -72,6 +92,16 @@ Window {
                 Button {
                     icon.source: "images/camera-switch-front-back-32.svg"
                     onClicked: changeCamera()
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Button {
+                    icon.source: "images/camera-32.svg"
+                    onClicked: {
+                        image.source = "";
+                        captureVideoFilter.capture();
+                    }
                 }
 
                 Item { Layout.fillWidth: true }
@@ -97,6 +127,10 @@ Window {
             frameCount++;
             let elapsed = (Date.now() - frameStart) / 1000.0;
             fps = (frameCount / elapsed).toFixed(0) + " FPS";
+        }
+
+        onCaptured: {
+            image.source = imageUrl;
         }
     }
 

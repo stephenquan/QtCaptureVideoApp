@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <file>qml/main.qml</file>
         <file>qml/images/camera-switch-front-back-32.svg</file>
+        <file>qml/images/camera-32.svg</file>
         <file>qml/images/function-32.svg</file>
         <file>qml/images/running-32.svg</file>
         <file>qml/images/walking-32.svg</file>
