@@ -1,6 +1,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include "CaptureVideoFilter.h"
+#include "EnumInfo.h"
 
 int main(int argc, char *argv[])
 {
@@ -9,6 +10,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     qmlRegisterType<CaptureVideoFilter>("QtCaptureVideoApp", 1, 0, "CaptureVideoFilter");
+    qmlRegisterType<EnumInfo>("QtCaptureVideoApp", 1, 0, "EnumInfo");
 
     QQmlApplicationEngine engine;
 

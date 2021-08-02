@@ -10,6 +10,7 @@ CONFIG += c++11
 
 SOURCES += \
         CaptureVideoFilter.cpp \
+        EnumInfo.cpp \
         main.cpp
 
 RESOURCES += qml.qrc
@@ -26,6 +27,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    CaptureVideoFilter.h
+    CaptureVideoFilter.h \
+    EnumInfo.h
 
 ANDROID_ABIS = armeabi-v7a

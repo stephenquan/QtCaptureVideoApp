@@ -54,22 +54,16 @@ Window {
                     + qsTr("FrameRate: %1").arg(fps)
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     color: "yellow"
-                    font.pointSize: 10
+                    font.pointSize: 12
                 }
             }
 
-            Frame {
+            Item {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.margins: 10
-                width: parent.width / 4
-                height: parent.height / 4
-                padding: 0
-
-                background: Rectangle {
-                    color: "black"
-                    opacity: 0.5
-                }
+                width: Math.min(parent.width, parent.height) / 2
+                height: width
 
                 Image {
                     id: image
@@ -98,10 +92,7 @@ Window {
 
                 Button {
                     icon.source: "images/camera-32.svg"
-                    onClicked: {
-                        image.source = "";
-                        captureVideoFilter.capture();
-                    }
+                    onClicked: Qt.callLater(capture)
                 }
 
                 Item { Layout.fillWidth: true }
@@ -139,6 +130,12 @@ Window {
         Qt.callLater(selectCamera, 0);
     }
 
+    EnumInfo {
+        id: myEnum
+        context: camera.imageProcessing
+        Component.onCompleted: console.log(JSON.stringify(availableNames))
+    }
+
     function selectCamera(index) {
         if (index > QtMultimedia.availableCameras.length) {
             return;
@@ -149,10 +146,17 @@ Window {
         camera.start();
         cameraDisplayName = QtMultimedia.availableCameras[cameraIndex].displayName;
         resetFpsInfo();
+        Qt.callLater(capture);
+    }
+
+    function capture() {
+        image.source = "";
+        captureVideoFilter.capture();
     }
 
     function changeCamera() {
         let nextCameraIndex = (cameraIndex + 1) % QtMultimedia.availableCameras.length;
+        image.source = "";
         selectCamera(nextCameraIndex);
     }
 
@@ -176,6 +180,7 @@ Window {
             break;
         }
         resetFpsInfo();
+        Qt.callLater(capture);
     }
 
     function resetFpsInfo() {
