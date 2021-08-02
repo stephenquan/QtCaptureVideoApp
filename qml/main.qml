@@ -124,8 +124,7 @@ Window {
     }
 
     function changeCamera() {
-        //let nextCameraIndex = (cameraIndex + 1) % QtMultimedia.availableCameras.length;
-        let nextCameraIndex = (cameraIndex + QtMultimedia.availableCameras.length - 1) % QtMultimedia.availableCameras.length;
+        let nextCameraIndex = (cameraIndex + 1) % QtMultimedia.availableCameras.length;
         selectCamera(nextCameraIndex);
     }
 
