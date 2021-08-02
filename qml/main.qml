@@ -38,7 +38,7 @@ Window {
                 width: parent.width
 
                 background: Rectangle {
-                    color: "#808080"
+                    color: "black"
                     opacity: 0.5
                 }
 

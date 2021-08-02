@@ -128,9 +128,7 @@ QVideoFrame CaptureVideoFilterRunnable::run(QVideoFrame *input, const QVideoSurf
     {
     case CaptureVideoFilter::ConversionMethodNone:
         imageInfo["method"] = "None";
-        m_Filter->setProperty("imageInfo", imageInfo);
-        emit m_Filter->frame();
-        return *input;
+        break;
     case CaptureVideoFilter::ConversionMethodQt:
         imageInfo["method"] = "QVideoFrame::image()";
         break;
@@ -143,37 +141,37 @@ QVideoFrame CaptureVideoFilterRunnable::run(QVideoFrame *input, const QVideoSurf
     }
 
     QImage image;
-
-    if (method == CaptureVideoFilter::ConversionMethodQt)
+    switch (method)
     {
+    case CaptureVideoFilter::ConversionMethodQt:
         image = input->image()
                 .mirrored(
                     false,
                     surfaceFormat.scanLineDirection() == QVideoSurfaceFormat::BottomToTop);
-    }
-    if (method == CaptureVideoFilter::ConversionMethodMap)
-    {
+        break;
+    case CaptureVideoFilter::ConversionMethodMap:
         if (!QVideoFrameToQImageUsingMap(input, image, surfaceFormat))
         {
             imageInfo["errorString"] = errorString;
             m_Filter->setProperty("imageInfo", imageInfo);
             return *input;
         }
-    }
-    if (method == CaptureVideoFilter::ConversionMethodOpenGL)
-    {
+        break;
+    case CaptureVideoFilter::ConversionMethodOpenGL:
         QVideoFrameToQImageUsingOpenGL(input, image);
+        break;
+    default:
+        break;
     }
 
-    QMetaEnum formatEnum = QMetaEnum::fromType<QImage::Format>();
-    imageInfo["qimageFormat"] = formatEnum.valueToKey(image.format());
-    imageInfo["qimageResolution"] = QString::number(image.width()) + "x" + QString::number(image.height());
-
-    //m_Filter->setProperty("image", imageUrl);
+    if (!image.isNull())
+    {
+        QMetaEnum formatEnum = QMetaEnum::fromType<QImage::Format>();
+        imageInfo["qimageFormat"] = formatEnum.valueToKey(image.format());
+        imageInfo["qimageResolution"] = QString::number(image.width()) + "x" + QString::number(image.height());
+    }
     m_Filter->setProperty("imageInfo", imageInfo);
-
     emit m_Filter->frame();
 
-    return image;
-    //return *input;
+    return !image.isNull() ? image : *input;
 }
