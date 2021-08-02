@@ -11,8 +11,6 @@ int main(int argc, char *argv[])
     qmlRegisterType<CaptureVideoFilter>("QtCaptureVideoApp", 1, 0, "CaptureVideoFilter");
 
     QQmlApplicationEngine engine;
-    CaptureVideoImageProvider* imageProvider = new CaptureVideoImageProvider;
-    engine.addImageProvider("captureVideo", imageProvider);
 
     const QUrl url(QStringLiteral("qrc:/qml/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

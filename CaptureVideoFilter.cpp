@@ -85,7 +85,6 @@ bool QVideoFrameToQImageUsingOpenGL(QVideoFrame* input, QImage& image)
     return true;
 }
 
-
 CaptureVideoFilter::CaptureVideoFilter(QObject* parent)
     : QAbstractVideoFilter(parent),
       m_ConversionMethod(ConversionMethodQt)
@@ -127,6 +126,11 @@ QVideoFrame CaptureVideoFilterRunnable::run(QVideoFrame *input, const QVideoSurf
     CaptureVideoFilter::ConversionMethod method = static_cast<CaptureVideoFilter::ConversionMethod>(m_Filter->property("conversionMethod").toInt());
     switch (method)
     {
+    case CaptureVideoFilter::ConversionMethodNone:
+        imageInfo["method"] = "None";
+        m_Filter->setProperty("imageInfo", imageInfo);
+        emit m_Filter->frame();
+        return *input;
     case CaptureVideoFilter::ConversionMethodQt:
         imageInfo["method"] = "QVideoFrame::image()";
         break;
@@ -161,61 +165,15 @@ QVideoFrame CaptureVideoFilterRunnable::run(QVideoFrame *input, const QVideoSurf
         QVideoFrameToQImageUsingOpenGL(input, image);
     }
 
-    QString id = CaptureVideoImageProvider::instance()->addImage(image);
     QMetaEnum formatEnum = QMetaEnum::fromType<QImage::Format>();
     imageInfo["qimageFormat"] = formatEnum.valueToKey(image.format());
     imageInfo["qimageResolution"] = QString::number(image.width()) + "x" + QString::number(image.height());
 
-    m_Filter->setProperty("image", "image://captureVideo/" + id);
+    //m_Filter->setProperty("image", imageUrl);
     m_Filter->setProperty("imageInfo", imageInfo);
 
-    return *input;
-}
+    emit m_Filter->frame();
 
-CaptureVideoImageProvider * CaptureVideoImageProvider::g_this = nullptr;
-
-CaptureVideoImageProvider::CaptureVideoImageProvider() :
-    QQuickImageProvider(QQuickImageProvider::Image),
-    m_Id(0)
-{
-    g_this = this;
-}
-
-CaptureVideoImageProvider::~CaptureVideoImageProvider()
-{
-    g_this = nullptr;
-}
-
-QString CaptureVideoImageProvider::addImage(const QImage& image)
-{
-    while (m_Images.size() > 10)
-    {
-        m_Images.pop_front();
-    }
-
-    m_Id++;
-    QString id = QString::number(m_Id);
-    QImage copiedImage(image);
-    copiedImage.setText("id", id);
-    m_Images.push_back(copiedImage);
-    return id;
-}
-
-QImage CaptureVideoImageProvider::requestImage(const QString &id, QSize *size, const QSize &requestedSize)
-{
-    Q_UNUSED(requestedSize)
-
-    foreach (QImage image, m_Images)
-    {
-        if (image.text("id") == id)
-        {
-            if (size)
-            {
-                *size = QSize(image.width(), image.height());
-            }
-            return image;
-        }
-    }
-
-    return QImage();
+    return image;
+    //return *input;
 }

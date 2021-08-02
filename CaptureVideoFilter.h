@@ -18,6 +18,7 @@ class CaptureVideoFilter : public QAbstractVideoFilter
 public:
     enum ConversionMethod
     {
+        ConversionMethodNone,
         ConversionMethodQt,
         ConversionMethodMap,
         ConversionMethodOpenGL
@@ -79,6 +80,7 @@ public:
     QVideoFilterRunnable* createFilterRunnable() Q_DECL_OVERRIDE;
 
 signals:
+    void frame();
     void imageChanged();
     void imageInfoChanged();
     void conversionMethodChanged();
@@ -97,22 +99,6 @@ public:
 
 protected:
     CaptureVideoFilter* m_Filter;
-};
-
-class CaptureVideoImageProvider : public QQuickImageProvider
-{
-public:
-    CaptureVideoImageProvider();
-    ~CaptureVideoImageProvider();
-
-    QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) Q_DECL_OVERRIDE;
-    QString addImage(const QImage& image);
-    static CaptureVideoImageProvider* instance() { return g_this; }
-
-protected:
-    static CaptureVideoImageProvider* g_this;
-    QVector<QImage> m_Images;
-    int m_Id;
 };
 
 #endif

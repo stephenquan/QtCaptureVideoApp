@@ -9,7 +9,7 @@ Window {
     width: 640
     height: 480
     visible: true
-    title: qsTr("Android Camera App")
+    title: qsTr("Qt Capture Video")
 
     property string cameraDisplayName: qsTr("Camera")
     property int cameraIndex: 0
@@ -27,6 +27,7 @@ Window {
 
         VideoOutput {
             id: videoOutput
+            anchors.fill: parent
             width: landscape ? parent.width / 2 : parent.width
             height: landscape ? parent.height : parent.height / 2
             source: camera
@@ -43,39 +44,17 @@ Window {
 
                 Text {
                     width: parent.width
-                    text: qsTr("%1 (%2)").arg(cameraDisplayName).arg(cameraIndex) + "\n"
-                    + qsTr("Orientation: %1").arg(videoOutput.orientation)
+                    text: ""
+                    + qsTr("%1 (%2 of %3)")
+                        .arg(cameraDisplayName)
+                        .arg(cameraIndex + 1)
+                        .arg(QtMultimedia.availableCameras.length) + "\n"
+                    + qsTr("Orientation: %1").arg(videoOutput.orientation) + "\n"
+                    + prettify(captureVideoFilter.imageInfo) + "\n"
+                    + fps
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     color: "yellow"
                     font.pointSize: 10
-                }
-            }
-        }
-
-        Image {
-            anchors.bottom: parent.bottom
-            anchors.right: parent.right
-            width: landscape ? parent.width / 2 : parent.width
-            height: landscape ? parent.height : parent.height / 2
-            source: captureVideoFilter.image
-            fillMode: Image.PreserveAspectFit
-
-            Frame {
-                width: parent.width
-
-                background: Rectangle {
-                    color: "#808080"
-                    opacity: 0.5
-                }
-
-                Text {
-                    width: parent.width
-                    text: captureVideoFilter.image + "\n"
-                          + prettify(captureVideoFilter.imageInfo) + "\n"
-                          + fps
-                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                    font.pointSize: 10
-                    color: "yellow"
                 }
             }
         }
@@ -119,33 +98,43 @@ Window {
             let elapsed = (Date.now() - frameStart) / 1000.0;
             fps = (frameCount / elapsed).toFixed(0) + " FPS";
         }
+
+        onFrame: {
+            frameCount++;
+            let elapsed = (Date.now() - frameStart) / 1000.0;
+            fps = (frameCount / elapsed).toFixed(0) + " FPS";
+        }
     }
 
-    Component.onCompleted: Qt.callLater(selectCamera, 0)
+    Component.onCompleted: {
+        console.log(JSON.stringify(QtMultimedia.availableCameras, undefined, 2));
+        Qt.callLater(selectCamera, 0);
+    }
 
     function selectCamera(index) {
         if (index > QtMultimedia.availableCameras.length) {
             return;
         }
-
         cameraIndex = index;
         camera.stop();
         camera.deviceId = QtMultimedia.availableCameras[cameraIndex].deviceId;
         camera.start();
         cameraDisplayName = QtMultimedia.availableCameras[cameraIndex].displayName;
-        frameStart = Date.now();
-        frameCount = 0;
-        fps = "0 FPS";
+        resetFpsInfo();
     }
 
     function changeCamera() {
-        let nextCameraIndex = (cameraIndex + 1) % QtMultimedia.availableCameras.length;
+        //let nextCameraIndex = (cameraIndex + 1) % QtMultimedia.availableCameras.length;
+        let nextCameraIndex = (cameraIndex + QtMultimedia.availableCameras.length - 1) % QtMultimedia.availableCameras.length;
         selectCamera(nextCameraIndex);
     }
 
     function changeMethod() {
         switch (captureVideoFilter.conversionMethod)
         {
+        case CaptureVideoFilter.ConversionMethodNone:
+            captureVideoFilter.conversionMethod = CaptureVideoFilter.ConversionMethodQt;
+            break;
         case CaptureVideoFilter.ConversionMethodQt:
             captureVideoFilter.conversionMethod = CaptureVideoFilter.ConversionMethodMap;
             break;
@@ -153,12 +142,16 @@ Window {
             captureVideoFilter.conversionMethod =
                     Qt.platform.os === "android"
             ? CaptureVideoFilter.ConversionMethodOpenGL
-            : CaptureVideoFilter.ConversionMethodQt
+            : CaptureVideoFilter.ConversionMethodNone
             break;
         default:
-            captureVideoFilter.conversionMethod = CaptureVideoFilter.ConversionMethodQt;
+            captureVideoFilter.conversionMethod = CaptureVideoFilter.ConversionMethodNone;
             break;
         }
+        resetFpsInfo();
+    }
+
+    function resetFpsInfo() {
         frameStart = Date.now();
         frameCount = 0;
         fps = "0 FPS";
