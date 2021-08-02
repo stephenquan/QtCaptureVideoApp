@@ -93,12 +93,6 @@ Window {
     CaptureVideoFilter {
         id: captureVideoFilter
 
-        onImageChanged: {
-            frameCount++;
-            let elapsed = (Date.now() - frameStart) / 1000.0;
-            fps = (frameCount / elapsed).toFixed(0) + " FPS";
-        }
-
         onFrame: {
             frameCount++;
             let elapsed = (Date.now() - frameStart) / 1000.0;

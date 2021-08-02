@@ -11,7 +11,6 @@ class CaptureVideoFilter : public QAbstractVideoFilter
 {
     Q_OBJECT
 
-    Q_PROPERTY(QString image MEMBER m_Image NOTIFY imageChanged)
     Q_PROPERTY(QVariantMap imageInfo MEMBER m_ImageInfo NOTIFY imageInfoChanged)
     Q_PROPERTY(ConversionMethod conversionMethod MEMBER m_ConversionMethod NOTIFY conversionMethodChanged)
 
@@ -81,12 +80,10 @@ public:
 
 signals:
     void frame();
-    void imageChanged();
     void imageInfoChanged();
     void conversionMethodChanged();
 
 protected:
-    QString m_Image;
     QVariantMap m_ImageInfo;
     ConversionMethod m_ConversionMethod;
 };
