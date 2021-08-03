@@ -47,7 +47,11 @@ bool QVideoFrameToQImageUsingMap(QVideoFrame* input, QImage& image)
                     input->height(),
                     input->bytesPerLine(),
                     QImage::Format_ARGB32)
-                       .rgbSwapped();
+                       .rgbSwapped()
+#ifdef Q_OS_ANDROID
+                       .mirrored(false, true)
+#endif
+                ;
         input->unmap();
         return true;
     }
@@ -83,14 +87,14 @@ bool QVideoFrameToQImageUsingOpenGL(QVideoFrame* input, QImage& image)
     f->glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0 );
     f->glReadPixels( 0, 0,  input->width(),  input->height(), GL_RGBA, GL_UNSIGNED_BYTE, image.bits() );
     f->glBindFramebuffer( GL_FRAMEBUFFER, static_cast<GLuint>( prevFbo ) );
-    image = image.rgbSwapped()
-                 .mirrored(false, true);
+    image = image.rgbSwapped();
     return true;
 }
 
 CaptureVideoFilter::CaptureVideoFilter(QObject* parent)
     : QAbstractVideoFilter(parent),
-      m_ConversionMethod(ConversionMethodQt)
+      m_ConversionMethod(ConversionMethodQt),
+      m_Orientation(0)
 {
 }
 
@@ -167,36 +171,38 @@ QVideoFrame CaptureVideoFilterRunnable::run(QVideoFrame *input, const QVideoSurf
     QMetaEnum formatEnum = QMetaEnum::fromType<QImage::Format>();
     imageInfo["QImage.format"] = formatEnum.valueToKey(preview.format());
     imageInfo["QImage.resolution"] = QString::number(preview.width()) + "x" + QString::number(preview.height());
-    if (!preview.isNull())
-    {
-        if (m_Filter->property("capturing").toBool())
-        {
-            QImage captured = preview;
-            switch (method)
-            {
-            case CaptureVideoFilter::ConversionMethodNone:
-                imageInfo["ConversionMethod"] = "None";
-                break;
-            case CaptureVideoFilter::ConversionMethodQt:
-                if (surfaceFormat.scanLineDirection() == QVideoSurfaceFormat::BottomToTop)
-                {
-                    captured = captured.mirrored(false, true);
-                }
-                break;
-            case CaptureVideoFilter::ConversionMethodMap:
-                if (surfaceFormat.scanLineDirection() == QVideoSurfaceFormat::BottomToTop)
-                {
-                    captured = captured.mirrored(false, true);
-                }
-                break;
-            case CaptureVideoFilter::ConversionMethodOpenGL:
-                break;
-            }
-            emit m_Filter->captured(QImageToDataUri(captured));
-            m_Filter->setProperty("capturing", false);
-        }
-    }
     m_Filter->setProperty("imageInfo", imageInfo);
+
+    if (!preview.isNull() && m_Filter->property("capturing").toBool())
+    {
+        QImage captured = preview;
+        switch (method)
+        {
+        case CaptureVideoFilter::ConversionMethodQt:
+        case CaptureVideoFilter::ConversionMethodMap:
+            if (surfaceFormat.scanLineDirection() == QVideoSurfaceFormat::BottomToTop)
+            {
+                captured = captured.mirrored(false, true);
+            }
+            break;
+        default:
+            break;
+        }
+        int orientation = m_Filter->property("orientation").toInt();
+        if (orientation != 0)
+        {
+            QPoint center = captured.rect().center();
+            QTransform transform = QTransform()
+                    .translate(center.x(),center.y())
+                    .rotate(-orientation)
+                    .translate(-center.x(),-center.y())
+                    ;
+            captured = captured.transformed(transform);
+        }
+        emit m_Filter->captured(QImageToDataUri(captured));
+        m_Filter->setProperty("capturing", false);
+    }
+
     emit m_Filter->frame();
 
     return !preview.isNull() ? preview : *input;

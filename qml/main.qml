@@ -114,6 +114,8 @@ Window {
     CaptureVideoFilter {
         id: captureVideoFilter
 
+        orientation: videoOutput.orientation
+
         onFrame: {
             frameCount++;
             let elapsed = (Date.now() - frameStart) / 1000.0;

@@ -14,6 +14,7 @@ class CaptureVideoFilter : public QAbstractVideoFilter
     Q_PROPERTY(QVariantMap imageInfo MEMBER m_ImageInfo NOTIFY imageInfoChanged)
     Q_PROPERTY(ConversionMethod conversionMethod MEMBER m_ConversionMethod NOTIFY conversionMethodChanged)
     Q_PROPERTY(bool capturing MEMBER m_Capturing NOTIFY capturingChanged)
+    Q_PROPERTY(int orientation MEMBER m_Orientation NOTIFY orientationChanged)
 
 public:
     enum ConversionMethod
@@ -87,11 +88,13 @@ signals:
     void frame();
     void imageInfoChanged();
     void conversionMethodChanged();
+    void orientationChanged();
 
 protected:
     QVariantMap m_ImageInfo;
     ConversionMethod m_ConversionMethod;
     bool m_Capturing;
+    int m_Orientation;
 };
 
 class CaptureVideoFilterRunnable : public QVideoFilterRunnable
